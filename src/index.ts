@@ -4,11 +4,30 @@ import path from 'path';
 import { Hook } from './hook/Hook';
 
 const cors = require('cors');
+const bodyParser = require('body-parser');
+
+const jsonParser = bodyParser.json();
 
 export enum hooksHandlerState {
     pending,
     updating,
 }
+
+export enum EnumHookOpCode {
+    add_transaction,
+    other,
+}
+
+export type THookResponse = {
+    opcode: EnumHookOpCode;
+};
+
+/**
+ * на фронте это TRequestData
+ */
+export type THookRequest = {
+    opcode: EnumHookOpCode;
+};
 
 class HTTPServer {
     private counter: number;
@@ -24,7 +43,7 @@ class HTTPServer {
         this.counter += 1;
     }
 
-    private executeHooks() {
+    private executeHooks({ hookOpCode }: { hookOpCode: EnumHookOpCode }) {
         this.hooksHandlerState = hooksHandlerState.updating;
         while (this.hooks.length) {
             const hook = this.hooks.shift();
@@ -80,20 +99,23 @@ class HTTPServer {
         });
 
         this.httpServer.post('/api/hook', async (req, res: Response) => {
+            const body = req.body;
 
-            const body = req.body ;
-
-
-            console.log('hook request' , req.body);
+            console.log('hook request', req.body);
 
             await new Promise<void>((res, rej) => {
                 const hook = new Hook(() => res());
                 this.hooks.push(hook);
             });
 
-            res.status(219).json({
-                foo: 'bar',
-            });
+            /**
+             * BEWARE !!! #HARDCODE
+             */
+            const response: THookResponse = {
+                opcode: 0,
+            };
+
+            res.status(219).json(response);
         });
 
         this.httpServer.get('/', async (req, res: Response) => {
@@ -107,13 +129,37 @@ class HTTPServer {
             res.status(200).send(filecontent);
         });
 
-        this.httpServer.post('/api/add-transaction', (req, res: Response) => {
-            this.executeHooks();
+        this.httpServer.post(
+            '/api/add-transaction',
+            jsonParser,
+            (req, res: Response) => {
+                /**
+                 * на фронте при отправке риквеста данные должны совпадать
+                 */
+                const body = req.body as THookRequest;
 
-            res.status(200).json({
-                status: 0,
-            });
-        });
+                console.log(body);
+
+                ////////////////////////////////////
+                //                                //
+                //   код для проверки боди здесь  //
+                //                                //
+                ////////////////////////////////////
+
+                // резолвим ожидающие хуки для приложения
+                // на данный момент во все хуки отправляются одни и те же  параметры
+                this.executeHooks({
+                    hookOpCode: EnumHookOpCode.add_transaction,
+                });
+
+                /**
+                 * респонз для фронтенда
+                 */
+                res.status(200).json({
+                    status: 0,
+                });
+            }
+        );
     }
 }
 
