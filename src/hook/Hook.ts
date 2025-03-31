@@ -1,11 +1,13 @@
-export class Hook {
-    private handler: () => void;
+import { EnumHookOpCode } from '..';
 
-    execute() {
-        this.handler();
+export class Hook {
+    private handler: (opCode: EnumHookOpCode) => void;
+
+    execute(opCode: EnumHookOpCode) {
+        this.handler(opCode);
     }
 
-    constructor(handler: () => void) {
+    constructor(handler: (opCode: EnumHookOpCode) => void) {
         this.handler = handler;
     }
 }

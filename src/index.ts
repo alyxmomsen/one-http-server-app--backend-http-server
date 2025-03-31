@@ -5,25 +5,34 @@ import { Hook } from './hook/Hook';
 
 const cors = require('cors');
 const bodyParser = require('body-parser');
-
 const jsonParser = bodyParser.json();
 
+/**
+ * this types must be sync with other apps
+ * */
 export enum hooksHandlerState {
     pending,
     updating,
 }
 
+/**
+ * this types must be sync  with other apps
+ * */
 export enum EnumHookOpCode {
     add_transaction,
     other,
 }
 
+/**
+ * this types must be sync  with other apps
+ * */
 export type THookResponse = {
     opcode: EnumHookOpCode;
 };
 
 /**
  * на фронте это TRequestData
+ * this types must be sync  with other appss
  */
 export type THookRequest = {
     opcode: EnumHookOpCode;
@@ -43,6 +52,14 @@ class HTTPServer {
         this.counter += 1;
     }
 
+    /**
+     * test
+     * add app hook
+     */
+    private addHookFromApp() {
+        this.hooks.push();
+    }
+
     private executeHooks({ hookOpCode }: { hookOpCode: EnumHookOpCode }) {
         this.hooksHandlerState = hooksHandlerState.updating;
         while (this.hooks.length) {
@@ -50,7 +67,7 @@ class HTTPServer {
 
             if (hook === undefined) continue;
 
-            hook.execute();
+            hook.execute(hookOpCode);
         }
         this.hooksHandlerState = hooksHandlerState.pending;
     }
@@ -103,8 +120,8 @@ class HTTPServer {
 
             console.log('hook request', req.body);
 
-            await new Promise<void>((res, rej) => {
-                const hook = new Hook(() => res());
+            const opcode = await new Promise<EnumHookOpCode>((res, rej) => {
+                const hook = new Hook((opCode: EnumHookOpCode) => res(opCode));
                 this.hooks.push(hook);
             });
 
@@ -112,7 +129,7 @@ class HTTPServer {
              * BEWARE !!! #HARDCODE
              */
             const response: THookResponse = {
-                opcode: 0,
+                opcode,
             };
 
             res.status(219).json(response);
@@ -149,7 +166,8 @@ class HTTPServer {
                 // резолвим ожидающие хуки для приложения
                 // на данный момент во все хуки отправляются одни и те же  параметры
                 this.executeHooks({
-                    hookOpCode: EnumHookOpCode.add_transaction,
+                    hookOpCode:
+                        /* EnumHookOpCode.add_transaction */ body.opcode,
                 });
 
                 /**
