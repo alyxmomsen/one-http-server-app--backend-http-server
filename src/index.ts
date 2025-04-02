@@ -24,7 +24,8 @@ export enum EnumHookOpCode {
 }
 
 /**
- * this types must be sync  with other apps
+ * this types must be sync  with other apps;
+ * returns 
  * */
 export type THookResponse = {
     opcode: EnumHookOpCode;
@@ -33,9 +34,13 @@ export type THookResponse = {
 /**
  * на фронте это TRequestData
  * this types must be sync  with other appss
+ * 
+ * 
  */
 export type THookRequest = {
+    userId:number;
     opcode: EnumHookOpCode;
+
 };
 
 class HTTPServer {
@@ -115,6 +120,10 @@ class HTTPServer {
             res.status(222).send(filecontent);
         });
 
+
+        /**
+         * this  route for the App
+         */
         this.httpServer.post('/api/hook', async (req, res: Response) => {
             const body = req.body;
 
@@ -125,8 +134,11 @@ class HTTPServer {
                 this.hooks.push(hook);
             });
 
+
             /**
-             * BEWARE !!! #HARDCODE
+             * 
+             * response opcode to the back-end App
+             * when the hook is resolved
              */
             const response: THookResponse = {
                 opcode,
@@ -135,6 +147,10 @@ class HTTPServer {
             res.status(219).json(response);
         });
 
+
+        /**
+         * the route for front-end app
+         */
         this.httpServer.get('/', async (req, res: Response) => {
             const filecontent = readFileSync(
                 path.resolve(this.baseURL, 'dist/index.html'),
@@ -146,6 +162,11 @@ class HTTPServer {
             res.status(200).send(filecontent);
         });
 
+
+        /**
+         * 
+         * route for front-end application
+         */
         this.httpServer.post(
             '/api/add-transaction',
             jsonParser,
